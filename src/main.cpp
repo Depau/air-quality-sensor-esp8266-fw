@@ -451,7 +451,7 @@ void loop() {
     }
 
     sds011_pm_data_t pmData;
-    if (sds.read(&pmData)) {
+    if (sds.read(&pmData) && (pmData.pm10 != 0.0 || pmData.pm25 != 0.0)) {
         homiePropPm25->SetValue(String(pmData.pm25));
         homiePropPm10->SetValue(String(pmData.pm10));
     }
