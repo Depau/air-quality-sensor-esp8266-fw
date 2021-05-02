@@ -285,6 +285,8 @@ void setup() {
         ArduinoOTA.setPort(OTA_PORT);
 
         ArduinoOTA.onStart([]() {
+            sdsSerial.end();
+            homie.Quit();
             saveBsecState();
             otaRunning = true;
             Serial.println(F("OTA upgrade started"));
@@ -311,6 +313,7 @@ void setup() {
                     Serial.println("END");
                     break;
             }
+            Serial.flush();
             ESP.reset();
         });
         ArduinoOTA.begin();
