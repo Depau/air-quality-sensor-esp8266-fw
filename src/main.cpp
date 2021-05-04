@@ -78,6 +78,16 @@ bsec_virtual_sensor_t bsecSensorList[] = {
         BSEC_OUTPUT_STABILIZATION_STATUS
 };
 
+// Panic but ensure OTA still works for 3 seconds
+void otaPanic() {
+    unsigned long start = millis();
+    while (millis() - start < 3000) {
+        ArduinoOTA.handle();
+        yield();
+    }
+    panic();
+}
+
 void setupHomieTree() {
     homieNodeBme680 = homie.NewNode();
     homieNodeBme680->strID = "air-quality";
@@ -357,19 +367,19 @@ void setup() {
     sds011_dev_info_t sdsInfo;
     if (!sds.getInfo(&sdsInfo)) {
         Serial.println("Fatal: failed to retrieve SDS011 device info");
-        panic();
+        otaPanic();
     }
     if (!sds.setWorkingPeriod(1)) { // once per minute
         Serial.println("Fatal: failed to set SDS011 working period");
-        panic();
+        otaPanic();
     }
     if (!sds.setDataReporting(SDS011_REPORT_MODE_ACTIVE)) {
         Serial.println("Fatal: failed to set SDS011 data reporting mode");
-        panic();
+        otaPanic();
     }
     if (!sds.setSleepMode(SDS011_SLEEP_MODE_WORK)) {
         Serial.println("Fatal: failed to set SDS011 sleep mode");
-        panic();
+        otaPanic();
     }
 
     output = "SDS011 version " + String(sdsInfo.year) + "-" + String(sdsInfo.month) + "-" + String(sdsInfo.day) +
@@ -390,7 +400,7 @@ void checkBsecStatus() {
         if (bsec.status < BSEC_OK) {
             output = "BSEC error code : " + String(bsec.status);
             Serial.println(output);
-            panic();
+            otaPanic();
         } else {
             output = "BSEC warning code : " + String(bsec.status);
             Serial.println(output);
@@ -401,7 +411,7 @@ void checkBsecStatus() {
         if (bsec.bme680Status < BME680_OK) {
             output = "BME680 error code : " + String(bsec.bme680Status);
             Serial.println(output);
-            panic();
+            otaPanic();
         } else {
             output = "BME680 warning code : " + String(bsec.bme680Status);
             Serial.println(output);
