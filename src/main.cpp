@@ -281,7 +281,7 @@ void setup() {
         led = !led;
         delay(500);
     }
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_BUILTIN, LOW);
 
     Serial.println();
     Serial.print(F("Connected: "));
