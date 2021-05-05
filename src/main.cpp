@@ -7,6 +7,7 @@
 #include <ArduinoOTA.h>
 #include <ESP8266mDNS.h>
 #include <FS.h>
+#include <HomieLogger.h>
 
 #include "config.h"
 
@@ -28,6 +29,10 @@ SoftwareSerial sdsSerial(SDS_RX, SDS_TX);
 SDS011 sds(&sdsSerial);
 
 HomieDevice homie;
+
+// Generic
+HomieNode *homieNodeGeneral = nullptr;
+HomieProperty *homiePropLog = nullptr;
 
 // BME680
 HomieNode *homieNodeBme680 = nullptr;
@@ -89,6 +94,17 @@ void otaPanic() {
 }
 
 void setupHomieTree() {
+    homieNodeGeneral = homie.NewNode();
+    homieNodeGeneral->strID = "general";
+    homieNodeGeneral->strFriendlyName = "General";
+
+    homiePropLog = homieNodeGeneral->NewProperty();
+    homiePropLog->SetRetained(true);
+    homiePropLog->SetSettable(false);
+    homiePropLog->strID = "log";
+    homiePropLog->strFriendlyName = "Log";
+    homiePropLog->datatype = homieString;
+
     homieNodeBme680 = homie.NewNode();
     homieNodeBme680->strID = "air-quality";
     homieNodeBme680->strFriendlyName = "Air quality sensor";
@@ -259,7 +275,7 @@ void saveBsecState() {
     file.write(bsecState, sizeof(bsecState));
     file.close();
     lastWriteBsecState = millis();
-    Serial.println("BSEC state persisted");
+    HLogger.println("BSEC state persisted");
 }
 
 void setup() {
@@ -267,8 +283,8 @@ void setup() {
     sdsSerial.begin(9600);
     Wire.begin(BME_SDA, BME_SCL);
 
-    Serial.print(F("\r\n\r\nConnecting to "));
-    Serial.print(WIFI_SSID);
+    HLogger.print(F("\r\n\r\nConnecting to "));
+    HLogger.print(WIFI_SSID);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -276,16 +292,16 @@ void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
     uint8_t led = 0;
     while (WiFi.status() != WL_CONNECTED) {
-        Serial.print(F("."));
+        HLogger.print(F("."));
         digitalWrite(LED_BUILTIN, led);
         led = !led;
         delay(500);
     }
     digitalWrite(LED_BUILTIN, LOW);
 
-    Serial.println();
-    Serial.print(F("Connected: "));
-    Serial.println(WiFi.localIP());
+    HLogger.println();
+    HLogger.print(F("Connected: "));
+    HLogger.println(WiFi.localIP());
 
     MDNS.begin(WIFI_HOSTNAME);
     if (OTA_PASSWORD[0] != '\0') {
@@ -299,48 +315,50 @@ void setup() {
             homie.Quit();
             saveBsecState();
             otaRunning = true;
-            Serial.println(F("OTA upgrade started"));
+            HLogger.println(F("OTA upgrade started"));
         });
         ArduinoOTA.onEnd([]() {
-            Serial.println(F("OTA upgrade successfully completed"));
+            HLogger.println(F("OTA upgrade successfully completed"));
         });
         ArduinoOTA.onError([](ota_error_t err) {
-            Serial.print("OTA error: ");
+            HLogger.print("OTA error: ");
             switch (err) {
                 case OTA_AUTH_ERROR:
-                    Serial.println("AUTH");
+                    HLogger.println("AUTH");
                     break;
                 case OTA_BEGIN_ERROR:
-                    Serial.println("BEGIN");
+                    HLogger.println("BEGIN");
                     break;
                 case OTA_CONNECT_ERROR:
-                    Serial.println("CONNECT");
+                    HLogger.println("CONNECT");
                     break;
                 case OTA_RECEIVE_ERROR:
-                    Serial.println("RECEIVE");
+                    HLogger.println("RECEIVE");
                     break;
                 case OTA_END_ERROR:
-                    Serial.println("END");
+                    HLogger.println("END");
                     break;
             }
             Serial.flush();
             ESP.reset();
         });
         ArduinoOTA.begin();
-        Serial.println("OTA server up");
+        HLogger.println("OTA server up");
     }
 
     HomieLibRegisterDebugPrintCallback([](const char *szText) {
-        Serial.print(szText);
+        HLogger.print(szText);
     });
 
-    Serial.println(F("Bringing up Homie"));
+    HLogger.println(F("Bringing up Homie"));
     setupHomieTree();
     homie.strID = "air-sensor";
     homie.strFriendlyName = "Air quality sensor";
     homie.strMqttServerIP = MQTT_IP;
     homie.Init();
-    Serial.println(F("Homie is running"));
+    HLogger.setHomieProp(homiePropLog);
+
+    HLogger.println(F("Homie is running"));
 
     SPIFFSConfig fsConfig;
     fsConfig.setAutoFormat(true);
@@ -355,36 +373,36 @@ void setup() {
         file.read(bsecState, sizeof(bsecState));
         file.close();
         bsec.setState(bsecState);
-        Serial.println("Loaded BSEC state");
+        HLogger.println("Loaded BSEC state");
     }
 
     bsec.updateSubscription(bsecSensorList, sizeof(bsecSensorList), BSEC_SAMPLE_RATE_LP);
 
     String output = "BSEC version " + String(bsec.version.major) + "." + String(bsec.version.minor) + "." +
                     String(bsec.version.major_bugfix) + "." + String(bsec.version.minor_bugfix);
-    Serial.println(output);
+    HLogger.println(output);
 
     sds011_dev_info_t sdsInfo;
     if (!sds.getInfo(&sdsInfo)) {
-        Serial.println("Fatal: failed to retrieve SDS011 device info");
+        HLogger.println("Fatal: failed to retrieve SDS011 device info");
         otaPanic();
     }
     if (!sds.setWorkingPeriod(1)) { // once per minute
-        Serial.println("Fatal: failed to set SDS011 working period");
+        HLogger.println("Fatal: failed to set SDS011 working period");
         otaPanic();
     }
     if (!sds.setDataReporting(SDS011_REPORT_MODE_ACTIVE)) {
-        Serial.println("Fatal: failed to set SDS011 data reporting mode");
+        HLogger.println("Fatal: failed to set SDS011 data reporting mode");
         otaPanic();
     }
     if (!sds.setSleepMode(SDS011_SLEEP_MODE_WORK)) {
-        Serial.println("Fatal: failed to set SDS011 sleep mode");
+        HLogger.println("Fatal: failed to set SDS011 sleep mode");
         otaPanic();
     }
 
     output = "SDS011 version " + String(sdsInfo.year) + "-" + String(sdsInfo.month) + "-" + String(sdsInfo.day) +
              ", sensor ID: " + String(sdsInfo.deviceId, HEX);
-    Serial.println(output);
+    HLogger.println(output);
 
     // Query the sensor once on start to avoid publishing 0.0
     sds011_pm_data_t pmData;
@@ -399,22 +417,22 @@ void checkBsecStatus() {
     if (bsec.status != BSEC_OK) {
         if (bsec.status < BSEC_OK) {
             output = "BSEC error code : " + String(bsec.status);
-            Serial.println(output);
+            HLogger.println(output);
             otaPanic();
         } else {
             output = "BSEC warning code : " + String(bsec.status);
-            Serial.println(output);
+            HLogger.println(output);
         }
     }
 
     if (bsec.bme680Status != BME680_OK) {
         if (bsec.bme680Status < BME680_OK) {
             output = "BME680 error code : " + String(bsec.bme680Status);
-            Serial.println(output);
+            HLogger.println(output);
             otaPanic();
         } else {
             output = "BME680 warning code : " + String(bsec.bme680Status);
-            Serial.println(output);
+            HLogger.println(output);
         }
     }
 }

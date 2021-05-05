@@ -3,6 +3,7 @@
 //
 
 #include <Arduino.h>
+#include <HomieLogger.h>
 #include "SDS011.h"
 
 bool SDS011::setDataReporting(sds011_reporting_mode_t mode, uint16_t sensorID) {
@@ -35,7 +36,7 @@ bool SDS011::getSleepMode(uint16_t sensorID, uint8_t *sleepMode) {
 
 bool SDS011::setWorkingPeriod(uint8_t workPeriod, uint16_t sensorID) {
     if (workPeriod > 30) {
-        Serial.println("Invalid SDS011 working period! Must be from 0 to 30");
+        HLogger.println("Invalid SDS011 working period! Must be from 0 to 30");
         return false;
     }
     sds011_response_u resp;
@@ -146,17 +147,17 @@ bool SDS011::sendCommand(sds011_command_u *cmd) {
             yield();
             continue;
         }
-        Serial.print("SDS011: send ");
+        HLogger.print("SDS011: send ");
         for (unsigned char byte : cmd->raw.bytes) {
-            Serial.print(byte, HEX);
-            Serial.print(" ");
+            HLogger.print(byte, HEX);
+            HLogger.print(" ");
         }
-        Serial.println();
+        HLogger.println();
         return true;
 
     } while (millis() < start + _timeout);
 
-    Serial.println("SDS011: Failed to send command");
+    HLogger.println("SDS011: Failed to send command");
     return false;
 }
 
@@ -174,12 +175,12 @@ bool SDS011::readResponse(sds011_response_u *response, uint32_t timeout) {
         }
 
         _serial->readBytes(response->raw.bytes, 10);
-        Serial.print("SDS011: recv ");
+        HLogger.print("SDS011: recv ");
         for (unsigned char byte : response->raw.bytes) {
-            Serial.print(byte, HEX);
-            Serial.print(" ");
+            HLogger.print(byte, HEX);
+            HLogger.print(" ");
         }
-        Serial.println();
+        HLogger.println();
         return true;
 
     } while (millis() < start + timeout);
