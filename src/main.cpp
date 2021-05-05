@@ -311,14 +311,14 @@ void setup() {
         ArduinoOTA.setPort(OTA_PORT);
 
         ArduinoOTA.onStart([]() {
+            HLogger.println(F("OTA upgrade started"));
             sdsSerial.end();
-            homie.Quit();
             saveBsecState();
             otaRunning = true;
-            HLogger.println(F("OTA upgrade started"));
         });
         ArduinoOTA.onEnd([]() {
             HLogger.println(F("OTA upgrade successfully completed"));
+            homie.Quit();
         });
         ArduinoOTA.onError([](ota_error_t err) {
             HLogger.print("OTA error: ");
