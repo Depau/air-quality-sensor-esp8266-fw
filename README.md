@@ -21,3 +21,9 @@ pio run --target upload
 ```
 
 after changing the UART parameters in `platformio.ini`. ArduinoOTA is also implemented.
+
+## Remote logging
+
+```bash
+mosquitto_sub -h MQTT_BROKER -t homie/air-sensor/general/log -N
+```
