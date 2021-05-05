@@ -12,7 +12,7 @@
 #include "config.h"
 
 const uint8_t bsec_config_iaq[] = {
-#include <config/generic_33v_3s_28d/bsec_iaq.txt>
+#include <config/generic_33v_3s_4d/bsec_iaq.txt>
 };
 
 #define BSEC_STATE_FILENAME "/bsec_state.bin"
