@@ -147,12 +147,11 @@ bool SDS011::sendCommand(sds011_command_u *cmd) {
             yield();
             continue;
         }
-        HLogger.print("SDS011: send ");
+        String msg = String(F("SDS011: send "));
         for (unsigned char byte : cmd->raw.bytes) {
-            HLogger.print(byte, HEX);
-            HLogger.print(" ");
+            msg += String(byte, HEX) + " ";
         }
-        HLogger.println();
+        HLogger.println(msg);
         return true;
 
     } while (millis() < start + _timeout);
@@ -175,12 +174,11 @@ bool SDS011::readResponse(sds011_response_u *response, uint32_t timeout) {
         }
 
         _serial->readBytes(response->raw.bytes, 10);
-        HLogger.print("SDS011: recv ");
+        String msg = String(F("SDS011: recv "));
         for (unsigned char byte : response->raw.bytes) {
-            HLogger.print(byte, HEX);
-            HLogger.print(" ");
+            msg += String(byte, HEX) + " ";
         }
-        HLogger.println();
+        HLogger.println(msg);
         return true;
 
     } while (millis() < start + timeout);
