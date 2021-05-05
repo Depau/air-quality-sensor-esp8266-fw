@@ -340,6 +340,7 @@ void setup() {
                     break;
             }
             Serial.flush();
+            delay(1000);
             ESP.reset();
         });
         ArduinoOTA.begin();
